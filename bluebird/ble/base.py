@@ -1,7 +1,6 @@
 import dbus
 import dbus.service
 import dbus.exceptions
-import sys
 
 DBUS_OM_IFACE = "org.freedesktop.DBus.ObjectManager"
 DBUS_PROP_IFACE = "org.freedesktop.DBus.Properties"
@@ -10,7 +9,9 @@ GATT_SERVICE_IFACE = "org.bluez.GattService1"
 GATT_CHRC_IFACE = "org.bluez.GattCharacteristic1"
 GATT_DESC_IFACE = "org.bluez.GattDescriptor1"
 
-class Application(dbus.service.Object):
+LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"
+
+class BaseApplication(dbus.service.Object):
     """
     org.bluez.GattApplication1 interface implementation
     """
@@ -42,7 +43,7 @@ class Application(dbus.service.Object):
         return response
 
 
-class Service(dbus.service.Object):
+class BaseService(dbus.service.Object):
     """
     org.bluez.GattService1 interface implementation
     """
@@ -93,7 +94,7 @@ class Service(dbus.service.Object):
         return self.get_properties()[GATT_SERVICE_IFACE]
 
 
-class Characteristic(dbus.service.Object):
+class BaseCharacteristic(dbus.service.Object):
     """
     org.bluez.GattCharacteristic1 interface implementation
     """
@@ -170,7 +171,7 @@ class Characteristic(dbus.service.Object):
         pass
 
 
-class Descriptor(dbus.service.Object):
+class BaseDescriptor(dbus.service.Object):
     """
     org.bluez.GattDescriptor1 interface implementation
     """
@@ -214,6 +215,39 @@ class Descriptor(dbus.service.Object):
     def WriteValue(self, value, options):
         print('Default WriteValue called, returning error')
         raise NotSupportedException()
+
+
+class BaseAdvertisement(dbus.service.Object):
+    """org.bluez.LEAdvertisement1 implementation."""
+    def __init__(self, bus, path, ad_type, service_uuid, local_name):
+        self.path = path
+        self.bus = bus
+        self.ad_type = ad_type
+        self.service_uuids = dbus.Array([service_uuid], signature='s')
+        self.local_name = dbus.String(local_name)
+        self.include_tx_power = dbus.Boolean(True)
+        dbus.service.Object.__init__(self, bus, self.path)
+
+    def get_properties(self):
+        return { 
+                LE_ADVERTISEMENT_IFACE: {
+                        'Type': self.ad_type,
+                        'ServiceUUIDs': self.service_uuids,
+                        'LocalName': self.local_name,
+                        'IncludeTxPower': self.include_tx_power
+                }
+        }
+    
+    def get_path(self): 
+        return dbus.ObjectPath(self.path)
+    
+    @dbus.service.method(DBUS_PROP_IFACE, 
+                         in_signature='s', 
+                         out_signature='a{sv}')
+    def GetAll(self, interface):
+        if interface != LE_ADVERTISEMENT_IFACE: 
+            raise dbus.exceptions.DBusException("Unknown interface")
+        return self.get_properties()[LE_ADVERTISEMENT_IFACE]
 
 
 class InvalidArgsException(dbus.exceptions.DBusException):

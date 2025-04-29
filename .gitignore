@@ -1,6 +1,10 @@
 #Exclude testing bin files
 *.bin 
 
+# Exclude virtual environments
+venv/
+.venv/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
