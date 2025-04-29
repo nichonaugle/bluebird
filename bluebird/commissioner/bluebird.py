@@ -431,7 +431,6 @@ class BluebirdCommissioner():
         else:
             log.warning("Cannot update status: GLib loop or service not available.")
 
-
     # --- Public API ---
     async def start(self):
         """Initialize D-Bus and start the network monitor."""
